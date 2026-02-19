@@ -1,7 +1,7 @@
 # Homework 1
 
-The code for the tasks are in the directory src. The code for the the corresponding tests are in the directory tests. 
-To set environment and install pytest, run the following:
+The code for the tasks is in the directory src. The code for the corresponding tests is in the directory tests. 
+To set the environment and install pytest, run the following:
 1. python3 -m venv your_custom_env_name_here -- system - site - packages
 2. source your_custom_env_name_here/bin/activate
 3. python3 -m pip install pytest
