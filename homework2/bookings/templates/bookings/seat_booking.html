@@ -5,6 +5,15 @@
 <h2 class="mb-1">Select a seat for: {{ movie.title }}</h2>
 <p class="text-muted mb-4">Pick an available seat below.</p>
 
+<h2 class="mb-1">{{ showtime.movie.title }}</h2>
+<p class="text-muted mb-4">Showtime: {{ showtime.start_time }}</p>
+
+{% if not can_book %}
+  <div class="alert alert-warning">
+    You can view seats as a guest, but you must <a href="{% url 'login' %}?next={{ request.path }}">log in</a>
+    to select and book a seat.
+  </div>
+{% endif %}
 <!-- SCREEN bar -->
 <div class="text-center mb-4">
   <div class="border rounded py-2 fw-semibold" style="letter-spacing: 2px;">
@@ -22,18 +31,24 @@
       <!-- Seats in this row -->
       <div class="d-flex gap-2 flex-wrap">
           {% for seat in seats %}
-            {% if seat.is_booked %}
-              <button class="btn btn-secondary" disabled style="min-width: 54px;">
+            {% if seat.id in booked_seat_ids %}
+              <button class="btn btn-secondary" disabled style="min-width:54px;">
                 {{ seat.seat_number|upper }}
               </button>
             {% else %}
-              <form method="POST" style="display:inline;">
+              {% if can_book %}
+               <form method="POST" style="display:inline;">
                 {% csrf_token %}
                 <input type="hidden" name="seat_id" value="{{ seat.id }}">
-                <button type="submit" class="btn btn-outline-primary" style="min-width: 54px;">
+                <button class="btn btn-outline-primary" type="submit" style="min-width:54px;">
                   {{ seat.seat_number|upper }}
                 </button>
               </form>
+              {% else %}
+                <button class="btn btn-outline-primary" disabled style="min-width:54px;" title="Log in to book">
+                   {{ seat.seat_number|upper }}
+                </button>
+              {% endif %}
             {% endif %}
           {% endfor %}
       </div>

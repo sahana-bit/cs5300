@@ -7,7 +7,7 @@
 </head>
 <body>
 <nav class="navbar navbar-dark bg-dark px-3">
-  <a class="navbar-brand text-white" href="{% url 'movie_list' %}">Movie Theater</a>
+  <a class="navbar-brand text-white" href="{% url 'movie_list' %}">Movie Theater - Click to see Movies Playing Now! </a>
   <div class="ms-auto">
     <a class="btn btn-outline-light me-2" href="{% url 'booking_history' %}">My Bookings</a>
       {% if user.is_authenticated %}
