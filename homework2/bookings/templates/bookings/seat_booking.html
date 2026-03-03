@@ -1,0 +1,43 @@
+{% extends "bookings/base.html" %}
+{% block title %}Seat Selection{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Select a seat for: {{ movie.title }}</h2>
+<p class="text-muted mb-4">Pick an available seat below.</p>
+
+<!-- SCREEN bar -->
+<div class="text-center mb-4">
+  <div class="border rounded py-2 fw-semibold" style="letter-spacing: 2px;">
+    SCREEN THIS WAY
+  </div>
+</div>
+
+<!-- Auditorium layout -->
+<div class="d-flex flex-column align-items-center gap-3">
+  {% for row_letter, seats in seat_rows %}
+    <div class="d-flex align-items-center gap-2">
+      <!-- Row label -->
+      <div class="fw-bold me-2" style="width: 28px;">{{ row_letter }}</div>
+
+      <!-- Seats in this row -->
+      <div class="d-flex gap-2 flex-wrap">
+        {% for seat in seats %}
+          {% if seat.is_booked %}
+            <button class="btn btn-secondary" disabled style="min-width: 54px;">
+              {{ seat.seat_number|upper }}
+            </button>
+          {% else %}
+            <button class="btn btn-outline-primary" disabled style="min-width: 54px;">
+              {{ seat.seat_number|upper }}
+            </button>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="mt-4 text-center text-muted">
+  <small>Legend: <span class="badge text-bg-secondary">Booked</span> <span class="badge text-bg-light border">Available</span></small>
+</div>
+{% endblock %}
