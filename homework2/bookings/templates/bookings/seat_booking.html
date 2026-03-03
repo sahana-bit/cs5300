@@ -21,17 +21,21 @@
 
       <!-- Seats in this row -->
       <div class="d-flex gap-2 flex-wrap">
-        {% for seat in seats %}
-          {% if seat.is_booked %}
-            <button class="btn btn-secondary" disabled style="min-width: 54px;">
-              {{ seat.seat_number|upper }}
-            </button>
-          {% else %}
-            <button class="btn btn-outline-primary" disabled style="min-width: 54px;">
-              {{ seat.seat_number|upper }}
-            </button>
-          {% endif %}
-        {% endfor %}
+          {% for seat in seats %}
+            {% if seat.is_booked %}
+              <button class="btn btn-secondary" disabled style="min-width: 54px;">
+                {{ seat.seat_number|upper }}
+              </button>
+            {% else %}
+              <form method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="seat_id" value="{{ seat.id }}">
+                <button type="submit" class="btn btn-outline-primary" style="min-width: 54px;">
+                  {{ seat.seat_number|upper }}
+                </button>
+              </form>
+            {% endif %}
+          {% endfor %}
       </div>
     </div>
   {% endfor %}

@@ -3,9 +3,27 @@ from .models import Movie, Seat, Booking
 from .serializers import MovieSerializer, SeatSerializer, BookingSerializer
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from rest_framework.permissions import IsAuthenticated
 from .models import Movie, Seat, Booking
 from collections import defaultdict
 import re
+from django.contrib import messages
+from django.contrib.auth import login
+from bookings.forms import RegisterForm
+
+def register_page(request):
+    if request.user.is_authenticated:
+        return redirect("movie_list")
+
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)  # auto-login
+            return redirect("movie_list")
+    else:
+        form = RegisterForm()
+    return render(request, "bookings/register.html", {"form": form})
 
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
@@ -18,8 +36,14 @@ class SeatViewSet(viewsets.ModelViewSet):
 
 
 class BookingViewSet(viewsets.ModelViewSet):
-    queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 def movie_list_page(request):
@@ -32,9 +56,26 @@ def movie_list_page(request):
 def seat_booking_page(request, movie_id):
     movie = get_object_or_404(Movie, id=movie_id)
 
+    # Handle booking POST
+    if request.method == "POST":
+        seat_id = request.POST.get("seat_id")
+        seat = get_object_or_404(Seat, id=seat_id)
+
+        if seat.is_booked:
+            messages.error(request, f"Seat {seat.seat_number} is already booked.")
+            return redirect("book_seat", movie_id=movie.id)
+
+        # Create booking + mark seat booked
+        Booking.objects.create(movie=movie, seat=seat, user=request.user)
+        seat.is_booked = True
+        seat.save()
+
+        messages.success(request, f"Booked {seat.seat_number} for {movie.title}!")
+        return redirect("booking_history")
+
+    # GET: show layout
     seats = Seat.objects.all()
 
-    # Group like A1, A2 -> row "A"; B1.. -> row "B"
     rows = defaultdict(list)
     seat_re = re.compile(r"^([A-Za-z]+)\s*([0-9]+)$")
 
@@ -44,13 +85,10 @@ def seat_booking_page(request, movie_id):
             row_letter = m.group(1).upper()
             seat_num = int(m.group(2))
         else:
-            # fallback (if formatting is weird)
             row_letter = "?"
             seat_num = 9999
-
         rows[row_letter].append((seat_num, s))
 
-    # Sort rows alphabetically, and seats numerically inside each row
     seat_rows = []
     for row_letter in sorted(rows.keys()):
         seat_rows.append((row_letter, [s for _, s in sorted(rows[row_letter], key=lambda x: x[0])]))
