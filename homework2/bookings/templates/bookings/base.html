@@ -23,15 +23,15 @@
 </nav>
 
 <div class="container py-4">
-  {% block content %}
-    {% if messages %}
+  {% if messages %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags }} mt-3" role="alert">
         {{ message }}
       </div>
     {% endfor %}
   {% endif %}
-{% endblock %}
+
+  {% block content %}{% endblock %}
 </div>
 </body>
 </html>

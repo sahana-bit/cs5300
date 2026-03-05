@@ -17,28 +17,21 @@ class Seat(models.Model):
     def __str__(self):
         return self.seat_number
 
-
-class Showtime(models.Model):
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="showtimes")
-    start_time = models.DateTimeField()
-
-    class Meta:
-        ordering = ["start_time"]
-
-    def __str__(self):
-        return f"{self.movie.title} @ {self.start_time}"
+    def is_available_for(self, movie):
+        """Returns True if this seat has not been booked for the given movie."""
+        return not self.booking_set.filter(movie=movie).exists()
 
 
 class Booking(models.Model):
-    showtime = models.ForeignKey(Showtime, on_delete=models.CASCADE, related_name="bookings")
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="bookings")
     seat = models.ForeignKey(Seat, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     booking_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["showtime", "seat"], name="unique_seat_per_showtime")
+            models.UniqueConstraint(fields=["movie", "seat"], name="unique_seat_per_movie")
         ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.showtime} - {self.seat.seat_number}"
+        return f"{self.user.username} - {self.movie.title} - {self.seat.seat_number}"

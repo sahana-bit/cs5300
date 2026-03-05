@@ -11,17 +11,7 @@
       <div class="card-body">
         <h5 class="card-title">{{ movie.title }}</h5>
         <p class="card-text">{{ movie.description|truncatechars:160 }}</p>
-        <div class="mt-2">
-            <div class="fw-semibold">Showtimes:</div>
-            {% for st in movie.showtimes.all %}
-              <a class="btn btn-sm btn-outline-primary me-2 mt-1" href="{% url 'book_seat' st.id %}">
-                {{ st.start_time }}
-              </a>
-            {% empty %}
-              <span class="text-muted">No showtimes yet</span>
-            {% endfor %}
-          </div>
-            <a class="btn btn-primary" href="{% url 'book_seat' movie.id %}">Book seats</a>
+        <a class="btn btn-primary" href="{% url 'book_seat' movie.id %}">Book Seats</a>
       </div>
     </div>
   </div>

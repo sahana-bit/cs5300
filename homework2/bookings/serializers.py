@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Movie, Seat, Booking, Showtime
+from .models import Movie, Seat, Booking
 
 
 class MovieSerializer(serializers.ModelSerializer):
@@ -13,12 +13,8 @@ class SeatSerializer(serializers.ModelSerializer):
         model = Seat
         fields = '__all__'
 
-class ShowtimeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Showtime
-        fields = "__all__"
-
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
+        read_only_fields = ['user', 'booking_date'] 
