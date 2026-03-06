@@ -1,15 +1,15 @@
-"""
-Integration Tests — REST API endpoints and template views end-to-end.
-Run with:  pytest bookings/test_integration.py -v
-"""
 import pytest
 from django.urls import reverse
 from rest_framework import status
+from bookings.models import Booking, Movie, Seat
 
-
+"""
+Testing Movie API, checking movie lists (available movies) and also movies that should not be in the list. 
+Anyone can see the movie list (read).
+Also, validating the fact that only Admins can create, update and delete movie entries (not regular users).
+"""
 @pytest.mark.django_db
 class TestMovieAPI:
-
     def test_list_movies_returns_correct_data(self, api_client, movie):
         r = api_client.get("/api/movies/")
         titles = [m["title"] for m in r.json()]
@@ -25,7 +25,6 @@ class TestMovieAPI:
         assert r.status_code == status.HTTP_404_NOT_FOUND
 
     def test_create_movie_as_admin_returns_201(self, admin_client):
-        from bookings.models import Movie
         payload = {"title": "New Film", "description": "Desc", "release_date": "2024-06-01", "duration": 100}
         r = admin_client.post("/api/movies/", payload)
         assert r.status_code == status.HTTP_201_CREATED
@@ -48,12 +47,14 @@ class TestMovieAPI:
         assert movie.title == "Updated"
 
     def test_delete_movie_as_admin(self, admin_client, movie):
-        from bookings.models import Movie
         r = admin_client.delete(f"/api/movies/{movie.id}/")
         assert r.status_code == status.HTTP_204_NO_CONTENT
         assert Movie.objects.count() == 0
 
-
+"""
+Testint Seat API.
+Similar to Movies, anyone can see the seats in the theater but only the admin can create new seats. 
+"""
 @pytest.mark.django_db
 class TestSeatAPI:
 
@@ -75,12 +76,15 @@ class TestSeatAPI:
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_seat_as_admin(self, admin_client, seat):
-        from bookings.models import Seat
         r = admin_client.delete(f"/api/seats/{seat.id}/")
         assert r.status_code == status.HTTP_204_NO_CONTENT
         assert Seat.objects.count() == 0
 
-
+"""
+Testing Booking API.
+Unauthorized users can't access (or make) their bookings or anyone else's. 
+Registered users can access (create, update and delete) only their bookings.
+"""
 @pytest.mark.django_db
 class TestBookingAPI:
 
@@ -89,14 +93,12 @@ class TestBookingAPI:
         assert r.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
     def test_list_bookings_returns_only_own(self, auth_client, booking, other_user, movie, seat2):
-        from bookings.models import Booking
         Booking.objects.create(movie=movie, seat=seat2, user=other_user)
         r = auth_client.get("/api/bookings/")
         assert r.status_code == status.HTTP_200_OK
         assert len(r.json()) == 1
 
     def test_create_booking_authenticated(self, auth_client, movie, seat):
-        from bookings.models import Booking
         r = auth_client.post("/api/bookings/", {"movie": movie.id, "seat": seat.id})
         assert r.status_code == status.HTTP_201_CREATED
         assert Booking.objects.count() == 1
@@ -106,7 +108,9 @@ class TestBookingAPI:
         r = auth_client.post("/api/bookings/", {"movie": movie.id, "seat": seat.id})
         assert r.status_code == status.HTTP_400_BAD_REQUEST
 
-
+"""
+Testing Movie List view
+"""
 
 @pytest.mark.django_db
 class TestMovieListView:
@@ -123,7 +127,12 @@ class TestMovieListView:
         r = client.get(reverse("movie_list"))
         assert b"No movies yet" in r.content
 
-
+"""
+Testing:
+Any one can see the seats but only registered users who are logged in can book seats. 
+Users who are not logged in will be prompted to do so.
+Logged in users can't book seats that are already booked (they are blocked).
+"""
 @pytest.mark.django_db
 class TestSeatBookingView:
 
@@ -149,18 +158,19 @@ class TestSeatBookingView:
         assert b"log in" in r.content.lower()
 
     def test_booking_as_logged_in_user(self, browser_client, movie, seat):
-        from bookings.models import Booking
         r = browser_client.post(reverse("book_seat", args=[movie.id]), {"seat_id": seat.id})
         assert r.status_code == 302
         assert Booking.objects.count() == 1
 
     def test_booking_taken_seat_blocked(self, browser_client, booking, movie, seat):
-        from bookings.models import Booking
         browser_client.post(reverse("book_seat", args=[movie.id]), {"seat_id": seat.id})
         assert Booking.objects.count() == 1
 
-
-
+"""
+Testing:
+Unauthenticated users can't view booking history instead will be redirected to the login page.
+Authenticated users can only see their booking history
+"""
 @pytest.mark.django_db
 class TestBookingHistoryView:
 
@@ -180,17 +190,17 @@ class TestBookingHistoryView:
         assert b"A1" in r.content
 
     def test_does_not_show_other_users_bookings(self, browser_client, other_user, movie, seat2):
-        from bookings.models import Booking
         Booking.objects.create(movie=movie, seat=seat2, user=other_user)
         r = browser_client.get(reverse("booking_history"))
         assert b"A2" not in r.content
 
-
+"""
+Testing: Users can cancel their own booking. Once they do so, the seat for that particular movie is available again. 
+"""
 @pytest.mark.django_db
 class TestCancelBookingView:
 
     def test_cancel_own_booking_deletes_it(self, browser_client, booking):
-        from bookings.models import Booking
         browser_client.post(reverse("cancel_booking", args=[booking.id]))
         assert Booking.objects.count() == 0
 
@@ -199,7 +209,6 @@ class TestCancelBookingView:
         assert r.status_code == 302
 
     def test_cannot_cancel_other_users_booking(self, browser_client, other_user, movie, seat2):
-        from bookings.models import Booking
         other_booking = Booking.objects.create(movie=movie, seat=seat2, user=other_user)
         r = browser_client.post(reverse("cancel_booking", args=[other_booking.id]))
         assert r.status_code == 404

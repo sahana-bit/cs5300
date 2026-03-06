@@ -1,3 +1,6 @@
+"""
+Serializers for Movie, Seat and Booking
+"""
 from rest_framework import serializers
 from .models import Movie, Seat, Booking
 

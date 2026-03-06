@@ -13,14 +13,18 @@ from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 
-
+"""
+Everyone can Read but you need special permissions for GET, POST, PUT and DELETE (users or admin).
+"""
 class IsAdminOrReadOnly(BasePermission):
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
             return True
         return request.user and request.user.is_staff
 
-
+"""
+Registration through Django Webpage. Nothing fancy.
+"""
 def register_page(request):
     if request.user.is_authenticated:
         return redirect("movie_list")
@@ -34,19 +38,25 @@ def register_page(request):
         form = RegisterForm()
     return render(request, "bookings/register.html", {"form": form})
 
-
+"""
+Everyone can view movie but only Admin can Create, Update and Delete entries
+"""
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
     permission_classes = [IsAdminOrReadOnly]
 
-
+"""
+Everyone can view seats but only Admin can Create, Update and Delete seats.
+"""
 class SeatViewSet(viewsets.ModelViewSet):
     queryset = Seat.objects.all()
     serializer_class = SeatSerializer
     permission_classes = [IsAdminOrReadOnly]
 
-
+"""
+Only authorized users can view their own booking history.
+"""
 class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
@@ -57,16 +67,19 @@ class BookingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
+"""
+Displays the webpage that shows all movies.
+"""
 def movie_list_page(request):
     movies = Movie.objects.all()
     return render(request, "bookings/movie_list.html", {"movies": movies})
 
-
+"""
+For the Page that shows the seats (arraneged like an audiorium). Once a seat is booked for a movie, it's "Blocked".
+"""
 def seat_booking_page(request, movie_id):
     movie = get_object_or_404(Movie, id=movie_id)
     seats = Seat.objects.all()
-
     booked_seat_ids = set(
         Booking.objects.filter(movie=movie).values_list("seat_id", flat=True)
     )
@@ -103,13 +116,17 @@ def seat_booking_page(request, movie_id):
         "can_book": request.user.is_authenticated,
     })
 
-
+"""
+Login required so only authorized users allowed to this page.
+"""
 @login_required
 def booking_history_page(request):
     bookings = Booking.objects.filter(user=request.user).select_related("movie", "seat").order_by("-booking_date")
     return render(request, "bookings/booking_history.html", {"bookings": bookings})
 
-
+"""
+Login required so only authorized users allowed to this page.
+"""
 @require_POST
 @login_required
 def cancel_booking(request, booking_id):

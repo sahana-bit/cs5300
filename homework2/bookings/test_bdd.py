@@ -1,19 +1,15 @@
-"""
-Behavior-Driven Design (BDD) tests using pytest-bdd.
-Feature files live in bookings/features/
-
-Run with:  pytest bookings/test_bdd.py -v
-"""
 import datetime
 import pytest
 from pytest_bdd import given, when, then, scenario, parsers
+from bookings.models import Booking, Seat, Movie
+from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+from django.urls import reverse
 
-
-# ===========================================================================
-# Scenario declarations — one function per scenario in the .feature files
-# ===========================================================================
-
-# movies.feature
+"""
+Scenario declarations. Each scenario in the .feature files has a function
+"""
+# movies
 @scenario("features/movies.feature", "Visitor sees all movies on the listing page")
 def test_visitor_sees_movies(): pass
 
@@ -23,7 +19,7 @@ def test_movie_api_public(): pass
 @scenario("features/movies.feature", "Admin can create a movie via the API")
 def test_admin_creates_movie(): pass
 
-# seat_booking.feature
+# seat_booking
 @scenario("features/seat_booking.feature", "Guest sees seat page but cannot book without logging in")
 def test_guest_sees_seat_page(): pass
 
@@ -39,7 +35,7 @@ def test_no_double_booking(): pass
 @scenario("features/seat_booking.feature", "Seat availability API is public")
 def test_seat_api_public(): pass
 
-# booking_history.feature
+# booking_history
 @scenario("features/booking_history.feature", "User sees their own bookings in history")
 def test_user_sees_own_history(): pass
 
@@ -56,13 +52,11 @@ def test_user_can_cancel(): pass
 def test_api_shows_own_bookings_only(): pass
 
 
-# ===========================================================================
-# Given steps
-# ===========================================================================
-
+"""
+Functions for Given steps in the scenario
+"""
 @given(parsers.parse('the movie "{title}" exists with duration {duration:d} minutes'))
 def movie_exists(db, title, duration):
-    from bookings.models import Movie
     movie, _ = Movie.objects.get_or_create(
         title=title,
         defaults={
@@ -76,14 +70,12 @@ def movie_exists(db, title, duration):
 
 @given(parsers.parse('seat "{seat_number}" exists'))
 def seat_exists(db, seat_number):
-    from bookings.models import Seat
     seat, _ = Seat.objects.get_or_create(seat_number=seat_number)
     return seat
 
 
 @given(parsers.parse('I am logged in as "{username}"'), target_fixture="active_client")
 def logged_in_as(db, client, username):
-    from django.contrib.auth.models import User
     user, _ = User.objects.get_or_create(username=username)
     user.set_password("pw")
     user.save()
@@ -93,8 +85,6 @@ def logged_in_as(db, client, username):
 
 @given("I am logged in as an admin", target_fixture="active_api_client")
 def logged_in_as_admin(db):
-    from django.contrib.auth.models import User
-    from rest_framework.test import APIClient
     admin, _ = User.objects.get_or_create(username="bdd_admin", defaults={"is_staff": True})
     admin.is_staff = True
     admin.set_password("pw")
@@ -106,8 +96,6 @@ def logged_in_as_admin(db):
 
 @given(parsers.parse('"{username}" has already booked seat "{seat_number}" for "{movie_title}"'))
 def user_has_booked(db, username, seat_number, movie_title):
-    from django.contrib.auth.models import User
-    from bookings.models import Movie, Seat, Booking
     user, created = User.objects.get_or_create(username=username)
     if created:
         user.set_password("pw")
@@ -117,33 +105,27 @@ def user_has_booked(db, username, seat_number, movie_title):
     Booking.objects.get_or_create(movie=movie, seat=seat, defaults={"user": user})
 
 
-# ===========================================================================
-# When steps
-# ===========================================================================
-
+"""
+Functions for When steps in scenarios
+"""
 @when("I visit the movie list page", target_fixture="response")
 def visit_movie_list(client):
-    from django.urls import reverse
     return client.get(reverse("movie_list"))
 
 
 @when("I request the movie list from the API as an unauthenticated user", target_fixture="response")
 def api_list_movies_unauth():
-    from rest_framework.test import APIClient
     return APIClient().get("/api/movies/")
 
 
 @when(parsers.parse('I request the movie "{title}" from the API'), target_fixture="response")
 def api_get_movie(title):
-    from bookings.models import Movie
-    from rest_framework.test import APIClient
     movie = Movie.objects.get(title=title)
     return APIClient().get(f"/api/movies/{movie.id}/")
 
 
 @when("an unauthenticated user tries to create a movie via the API", target_fixture="response")
 def api_create_movie_unauth():
-    from rest_framework.test import APIClient
     return APIClient().post("/api/movies/", {
         "title": "Blocked", "description": "x",
         "release_date": "2024-01-01", "duration": 90,
@@ -163,8 +145,6 @@ def api_create_movie(active_api_client, title, duration):
 
 @when(parsers.parse('I visit the seat booking page for "{movie_title}"'), target_fixture="response")
 def visit_seat_page(client, movie_title):
-    from django.urls import reverse
-    from bookings.models import Movie
     movie = Movie.objects.get(title=movie_title)
     return client.get(reverse("book_seat", args=[movie.id]))
 
@@ -172,8 +152,6 @@ def visit_seat_page(client, movie_title):
 @when(parsers.parse('an unauthenticated user tries to book seat "{seat_number}" for "{movie_title}"'),
       target_fixture="response")
 def guest_books_seat(client, seat_number, movie_title):
-    from django.urls import reverse
-    from bookings.models import Movie, Seat
     movie = Movie.objects.get(title=movie_title)
     seat = Seat.objects.get(seat_number=seat_number)
     return client.post(reverse("book_seat", args=[movie.id]), {"seat_id": seat.id})
@@ -181,8 +159,6 @@ def guest_books_seat(client, seat_number, movie_title):
 
 @when(parsers.parse('I book seat "{seat_number}" for "{movie_title}"'), target_fixture="response")
 def user_books_seat(active_client, seat_number, movie_title):
-    from django.urls import reverse
-    from bookings.models import Movie, Seat
     movie = Movie.objects.get(title=movie_title)
     seat = Seat.objects.get(seat_number=seat_number)
     return active_client.post(reverse("book_seat", args=[movie.id]), {"seat_id": seat.id})
@@ -190,49 +166,40 @@ def user_books_seat(active_client, seat_number, movie_title):
 
 @when("I request the seat list from the API", target_fixture="response")
 def api_list_seats():
-    from rest_framework.test import APIClient
     return APIClient().get("/api/seats/")
 
 
 @when("I visit the booking history page", target_fixture="response")
 def visit_history(active_client):
-    from django.urls import reverse
     return active_client.get(reverse("booking_history"))
 
 
 @when("I visit the booking history page as a guest", target_fixture="response")
 def visit_history_guest(client):
-    from django.urls import reverse
     return client.get(reverse("booking_history"))
 
 
 @when(parsers.parse('I cancel my booking for "{movie_title}" seat "{seat_number}"'),
       target_fixture="response")
 def cancel_booking(active_client, movie_title, seat_number):
-    from django.urls import reverse
-    from bookings.models import Movie, Seat, Booking
     movie = Movie.objects.get(title=movie_title)
     seat = Seat.objects.get(seat_number=seat_number)
-    # find the booking via the seat+movie (user is whoever is logged in)
+    # find the booking via the seat and movie when user is logged in
     booking = Booking.objects.get(movie=movie, seat=seat)
     return active_client.post(reverse("cancel_booking", args=[booking.id]))
 
 
 @when("I request my bookings from the API", target_fixture="response")
 def api_list_bookings(active_client):
-    from rest_framework.test import APIClient
-    # Re-authenticate the API client as the same user as active_client
-    from django.contrib.auth.models import User
     user = User.objects.get(username="sahana")
     c = APIClient()
     c.force_authenticate(user=user)
     return c.get("/api/bookings/")
 
 
-# ===========================================================================
-# Then steps
-# ===========================================================================
-
+"""
+Functions for Then steps in scenarios
+"""
 @then(parsers.parse("the response status is {status_code:d}"))
 def check_status(response, status_code):
     assert response.status_code == status_code, \
@@ -260,7 +227,6 @@ def json_field_equals(response, field, value):
 
 @then(parsers.parse('"{title}" exists in the database'))
 def movie_in_db(title):
-    from bookings.models import Movie
     assert Movie.objects.filter(title=title).exists()
 
 
@@ -277,21 +243,17 @@ def redirected_to_seat_page(response):
 
 @then("no booking is created")
 def no_booking_created():
-    from bookings.models import Booking
     assert Booking.objects.count() == 0
 
 
 @then(parsers.parse('the booking exists in the database for "{username}"'))
 def booking_exists_for_user(username):
-    from django.contrib.auth.models import User
-    from bookings.models import Booking
     user = User.objects.get(username=username)
     assert Booking.objects.filter(user=user).exists()
 
 
 @then(parsers.parse('only {count:d} booking exists for "{movie_title}"'))
 def only_n_bookings(count, movie_title):
-    from bookings.models import Movie, Booking
     movie = Movie.objects.get(title=movie_title)
     assert Booking.objects.filter(movie=movie).count() == count
 
@@ -304,8 +266,6 @@ def seat_in_api(response, seat_number):
 
 @then(parsers.parse('no booking exists for "{username}"'))
 def no_booking_for_user(username):
-    from django.contrib.auth.models import User
-    from bookings.models import Booking
     user = User.objects.get(username=username)
     assert not Booking.objects.filter(user=user).exists()
 
