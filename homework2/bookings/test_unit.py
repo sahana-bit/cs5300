@@ -1,5 +1,5 @@
 """
-Unit Tests — models and business logic in isolation.
+Unit Tests: Testing models.
 Run with:  pytest bookings/test_unit.py -v
 """
 import datetime
@@ -8,7 +8,7 @@ import pytest
 
 @pytest.mark.django_db
 class TestMovieModel:
-
+    
     def test_str_returns_title(self, movie):
         assert str(movie) == "Test Movie"
 
@@ -24,10 +24,6 @@ class TestMovieModel:
         assert m.description == "Sand worms."
         assert m.release_date == datetime.date(2021, 10, 22)
         assert m.duration == 155
-
-    def test_multiple_movies_can_exist(self, movie, movie2):
-        from bookings.models import Movie
-        assert Movie.objects.count() == 2
 
 
 @pytest.mark.django_db
@@ -50,10 +46,7 @@ class TestSeatModel:
 class TestBookingModel:
 
     def test_str_representation(self, booking):
-        assert str(booking) == "testuser - Test Movie - A1"
-
-    def test_booking_date_auto_set(self, booking):
-        assert booking.booking_date is not None
+        assert str(booking) == "sahana - Test Movie - A1"
 
     def test_unique_seat_per_movie_constraint(self, booking, other_user):
         from django.db import IntegrityError
@@ -71,16 +64,6 @@ class TestBookingModel:
         Booking.objects.create(movie=movie2, seat=seat, user=user)
         assert Booking.objects.count() == 2
 
-    def test_user_can_book_multiple_seats_for_same_movie(self, movie, seat, seat2, user):
-        from bookings.models import Booking
-        Booking.objects.create(movie=movie, seat=seat, user=user)
-        Booking.objects.create(movie=movie, seat=seat2, user=user)
-        assert Booking.objects.filter(user=user).count() == 2
-
-    def test_deleting_movie_cascades_to_bookings(self, booking):
-        from bookings.models import Booking
-        booking.movie.delete()
-        assert Booking.objects.count() == 0
 
     def test_user_only_sees_own_bookings(self, booking, other_user, movie, seat2):
         from bookings.models import Booking

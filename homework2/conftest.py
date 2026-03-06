@@ -7,7 +7,7 @@ def movie(db):
     from bookings.models import Movie
     return Movie.objects.create(
         title="Test Movie",
-        description="A great film.",
+        description="A film I guess.",
         release_date=datetime.date(2024, 1, 1),
         duration=120,
     )
@@ -35,17 +35,17 @@ def seat2(db):
 @pytest.fixture
 def user(db):
     from django.contrib.auth.models import User
-    return User.objects.create_user(username="testuser", password="testpass123")
+    return User.objects.create_user(username="sahana", password="testhelp")
 
 @pytest.fixture
 def other_user(db):
     from django.contrib.auth.models import User
-    return User.objects.create_user(username="otheruser", password="testpass123")
+    return User.objects.create_user(username="otheruser", password="testhelp")
 
 @pytest.fixture
 def admin_user(db):
     from django.contrib.auth.models import User
-    return User.objects.create_user(username="admin", password="testpass123", is_staff=True)
+    return User.objects.create_user(username="admin", password="password", is_staff=True)
 
 @pytest.fixture
 def booking(db, movie, seat, user):
